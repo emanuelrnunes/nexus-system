@@ -1,56 +1,71 @@
-# Welcome to your Expo app 👋
+# Nexus System
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo mobile de gerenciamento de projetos e tarefas, desenvolvido como projeto acadêmico.
 
-## Get started
+## 📱 Sobre o projeto
 
-1. Install dependencies
+O Nexus System tem como objetivo facilitar o gerenciamento de projetos e tarefas por meio de uma interface mobile baseada no conceito de Kanban.
 
-   ```bash
-   npm install
-   ```
+O sistema permitirá que usuários criem projetos, organizem tarefas e acompanhem o progresso de suas atividades.
 
-2. Start the app
+## 🚀 Tecnologias
 
-   ```bash
-   npx expo start
-   ```
+### Front-end
+- React Native
+- Expo
+- TypeScript
 
-In the output, you'll find options to open the app in a
+### Back-end
+- Spring Boot
+- Java
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Banco de dados
+- MySQL
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 📋 Funcionalidades planejadas
 
-## Get a fresh project
+- [ ] Cadastro de usuário
+- [ ] Login
+- [ ] Criação de projetos
+- [ ] Gerenciamento de tarefas
+- [ ] Quadro Kanban
+- [ ] Filtros e busca
+- [ ] Dashboard
+- [ ] Perfil do usuário
+- [ ] Integração com API
+- [ ] Persistência dos dados no MySQL
 
-When you're ready, run:
+## ✅ Progresso do projeto
 
-```bash
-npm run reset-project
-```
+### Home
+- [x] Estrutura inicial da tela
+- [x] Saudação do usuário
+- [x] Campo de busca
+- [x] Componente reutilizável de projeto
+- [x] Exibição da quantidade de tarefas
+- [x] Barra de progresso
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Backend
+- [ ] Configuração do Spring Boot
+- [ ] Criação da API
+- [ ] Integração com MySQL
+- [ ] Integração com o aplicativo mobile
 
-### Other setup steps
+## 📅 Histórico de desenvolvimento
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### 23/09/2026
+- Criação da estrutura inicial do aplicativo
+- Desenvolvimento da Home
+- Criação do componente `ProjectCard`
+- Implementação da barra de progresso
+- Configuração do Git
+- Criação do repositório no GitHub
+- Primeiro commit e push para o GitHub
 
-## Learn more
+## 👥 Equipe
 
-To learn more about developing your project with Expo, look at the following resources:
+Projeto acadêmico desenvolvido em grupo.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+**Nexus System** — Gerenciamento de projetos e tarefas.
