@@ -4,10 +4,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
 } from "react-native";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   useFocusEffect,
   useNavigation,
@@ -16,6 +15,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { listarTarefas } from "../services/taskService";
 import { listarProjetos } from "../services/projectService";
+import AvisoInline from "../components/AvisoInline";
 
 // =====================================================
 // TELA PRINCIPAL - KANBAN
@@ -29,13 +29,20 @@ export default function TaskScreen() {
   const [projetos, setProjetos] = useState([]);
   const [projetoEscolhido, setProjetoEscolhido] = useState(null);
   const [mostrarProjetos, setMostrarProjetos] = useState(false);
-  const projeto = route.params?.projeto || projetoEscolhido || projetos[0]?.title || "";
+  const projeto =
+    route.params?.projeto || projetoEscolhido || projetos[0]?.title || "";
 
   const [statusAtivo, setStatusAtivo] = useState(
     route.params?.status || "A Fazer",
   );
 
   const [tarefas, setTarefas] = useState([]);
+  const [erro, setErro] = useState("");
+
+  // Ao voltar de "Nova Tarefa", abre a coluna da tarefa criada
+  useEffect(() => {
+    if (route.params?.status) setStatusAtivo(route.params.status);
+  }, [route.params?.status, route.params?.atualizadoEm]);
 
   // =====================================================
   // FUNÇÃO: CARREGAR TAREFAS
@@ -43,15 +50,19 @@ export default function TaskScreen() {
 
   const carregarTarefas = useCallback(async () => {
     try {
-      const [lista, catalogo] = await Promise.all([listarTarefas(), listarProjetos()]);
+      const [lista, catalogo] = await Promise.all([
+        listarTarefas(),
+        listarProjetos(),
+      ]);
       setTarefas(lista);
       setProjetos(catalogo);
-      if (!route.params?.projeto && !projetoEscolhido && catalogo.length) setProjetoEscolhido(catalogo[0].title);
-    } catch (erro) {
-      console.error("Erro ao carregar tarefas:", erro);
-      setTarefas([]);
+      setErro("");
+      // Sem projeto definido: abre o primeiro da lista
+      setProjetoEscolhido((atual) => atual || catalogo[0]?.title || null);
+    } catch (e) {
+      setErro(e.message);
     }
-  }, [route.params?.projeto, projetoEscolhido]);
+  }, []);
 
   // Atualiza a lista ao retornar para o Kanban
   useFocusEffect(
@@ -149,7 +160,11 @@ export default function TaskScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate("homeScreen")}
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.popTo("homeScreen")
+          }
         >
           <MaterialIcons name="arrow-back" size={22} color="#111827" />
         </TouchableOpacity>
@@ -162,21 +177,65 @@ export default function TaskScreen() {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.menuButton} onPress={() => setMostrarProjetos(v => !v)} accessibilityLabel="Selecionar projeto">
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => setMostrarProjetos((v) => !v)}
+          accessibilityLabel="Selecionar projeto"
+        >
           <MaterialIcons name="swap-horiz" size={24} color="#2563EB" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuButton} onPress={() => { const selecionado=projetos.find(p=>p.title===projeto); if(selecionado) navigation.navigate("menuProjetoScreen",{projetoId:selecionado.id}); }} accessibilityLabel="Menu do projeto"><MaterialIcons name="more-vert" size={24} color="#475569" /></TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => {
+            const selecionado = projetos.find((p) => p.title === projeto);
+            if (selecionado)
+              navigation.navigate("menuProjetoScreen", {
+                projetoId: selecionado.id,
+              });
+          }}
+          accessibilityLabel="Menu do projeto"
+        >
+          <MaterialIcons name="more-vert" size={24} color="#475569" />
+        </TouchableOpacity>
       </View>
 
-      {mostrarProjetos && <ScrollView horizontal style={{maxHeight:56,backgroundColor:"#FFF"}} contentContainerStyle={{alignItems:"center",paddingHorizontal:12,gap:8}}>
-        {projetos.map(p => <TouchableOpacity key={p.id} onPress={() => {
-          setProjetoEscolhido(p.title);
-          navigation.setParams({projeto:p.title});
-          setMostrarProjetos(false);
-        }} style={{paddingHorizontal:13,paddingVertical:9,backgroundColor:projeto===p.title?"#DBEAFE":"#F1F5F9",borderRadius:20}}>
-          <Text style={{color:projeto===p.title?"#1D4ED8":"#475569",fontWeight:"600"}}>{p.title}</Text>
-        </TouchableOpacity>)}
-      </ScrollView>}
+      {mostrarProjetos && (
+        <ScrollView
+          horizontal
+          style={{ maxHeight: 56, backgroundColor: "#FFF" }}
+          contentContainerStyle={{
+            alignItems: "center",
+            paddingHorizontal: 12,
+            gap: 8,
+          }}
+        >
+          {projetos.map((p) => (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => {
+                setProjetoEscolhido(p.title);
+                navigation.setParams({ projeto: p.title });
+                setMostrarProjetos(false);
+              }}
+              style={{
+                paddingHorizontal: 13,
+                paddingVertical: 9,
+                backgroundColor: projeto === p.title ? "#DBEAFE" : "#F1F5F9",
+                borderRadius: 20,
+              }}
+            >
+              <Text
+                style={{
+                  color: projeto === p.title ? "#1D4ED8" : "#475569",
+                  fontWeight: "600",
+                }}
+              >
+                {p.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
       {/* ABAS DO KANBAN */}
       <View style={styles.tabs}>
         {["A Fazer", "Em andamento", "Concluída"].map((item) => {
@@ -203,6 +262,7 @@ export default function TaskScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
+        <AvisoInline mensagem={erro} onFechar={() => setErro("")} />
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
             <View
@@ -295,7 +355,7 @@ export default function TaskScreen() {
       {/* BOTÃO ADICIONAR TAREFA */}
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => navigation.navigate("novaTarefaScreen", {projeto})}
+        onPress={() => navigation.navigate("novaTarefaScreen", { projeto })}
       >
         <MaterialIcons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>

@@ -1,19 +1,184 @@
-import React, {useCallback,useMemo,useState} from "react";
-import {View,Text,TextInput,ScrollView,TouchableOpacity,StyleSheet} from "react-native";
-import {useFocusEffect} from "@react-navigation/native";
-import {MaterialIcons} from "@expo/vector-icons";
-import {listarTarefas} from "../services/taskService";
-import {listarProjetos} from "../services/projectService";
+import { useCallback, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { listarTarefas } from "../services/taskService";
 import BottomTab from "../components/BottomTab";
-const normalizar = v => String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-export default function BuscaScreen({navigation}) {
- const [texto,setTexto]=useState(""); const [filtro,setFiltro]=useState("Todas"); const [tarefas,setTarefas]=useState([]); const [projetos,setProjetos]=useState([]);
- useFocusEffect(useCallback(()=>{let ativo=true;Promise.all([listarTarefas(),listarProjetos()]).then(([t,p])=>{if(ativo){setTarefas(t);setProjetos(p);}}).catch(console.error);return ()=>{ativo=false};},[]));
- const resultados=useMemo(()=>tarefas.filter(t=>{const corresponde=normalizar([t.titulo,t.descricao,t.projeto].join(" ")).includes(normalizar(texto));const status=filtro==="Todas" || (filtro==="Pendentes" && t.status!=="Concluída") || (filtro==="Concluídas" && t.status==="Concluída") || (filtro==="Prioridade" && t.prioridade==="Alta");return corresponde&&status;}),[tarefas,texto,filtro]);
- return <View style={st.base}><ScrollView contentContainerStyle={st.conteudo}><View style={st.cabecalho}><TouchableOpacity onPress={()=>navigation.goBack()}><MaterialIcons name="arrow-back" size={22} color="#334155"/></TouchableOpacity><Text style={st.titulo}>Busca</Text></View>
- <View style={st.campo}><MaterialIcons name="search" size={21} color="#64748B"/><TextInput value={texto} onChangeText={setTexto} placeholder="Buscar tarefas..." style={{flex:1,outlineStyle:"none"}} autoFocus={false}/>{!!texto&&<TouchableOpacity onPress={()=>setTexto("")}><MaterialIcons name="close" size={19} color="#64748B"/></TouchableOpacity>}</View>
- <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:8,marginVertical:16}}>{["Todas","Pendentes","Concluídas","Prioridade"].map(x=><TouchableOpacity key={x} onPress={()=>setFiltro(x)} style={[st.filtro,filtro===x&&st.filtroAtivo]}><Text style={{color:filtro===x?"#1D4ED8":"#64748B",fontSize:12}}>{x}</Text></TouchableOpacity>)}</ScrollView>
- <Text style={st.subtitulo}>{resultados.length} tarefa(s) encontrada(s)</Text>{resultados.map(t=><TouchableOpacity key={String(t.id)} style={st.card} onPress={()=>navigation.navigate("detalhesTarefaScreen",{tarefaId:t.id})}><View style={{flex:1}}><Text style={st.nome}>{t.titulo}</Text><Text style={st.descricao} numberOfLines={1}>{t.projeto} · {t.status}</Text></View><Text style={{color:t.prioridade==="Alta"?"#DC2626":"#D97706",fontSize:12}}>{t.prioridade}</Text></TouchableOpacity>)}
- {resultados.length===0&&<Text style={st.vazio}>Nenhuma tarefa encontrada.</Text>}</ScrollView><BottomTab activeRoute="buscaScreen"/></View>
+import AvisoInline from "../components/AvisoInline";
+const normalizar = (v) =>
+  String(v || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+export default function BuscaScreen({ navigation }) {
+  const [texto, setTexto] = useState("");
+  const [filtro, setFiltro] = useState("Todas");
+  const [tarefas, setTarefas] = useState([]);
+  const [erro, setErro] = useState("");
+  useFocusEffect(
+    useCallback(() => {
+      let ativo = true;
+      listarTarefas()
+        .then((t) => {
+          if (ativo) {
+            setTarefas(t);
+            setErro("");
+          }
+        })
+        .catch((e) => {
+          if (ativo) setErro(e.message);
+        });
+      return () => {
+        ativo = false;
+      };
+    }, []),
+  );
+  const resultados = useMemo(
+    () =>
+      tarefas.filter((t) => {
+        const corresponde = normalizar(
+          [t.titulo, t.descricao, t.projeto].join(" "),
+        ).includes(normalizar(texto));
+        const status =
+          filtro === "Todas" ||
+          (filtro === "Pendentes" && t.status !== "Concluída") ||
+          (filtro === "Concluídas" && t.status === "Concluída") ||
+          (filtro === "Prioridade" && t.prioridade === "Alta");
+        return corresponde && status;
+      }),
+    [tarefas, texto, filtro],
+  );
+  return (
+    <View style={st.base}>
+      <ScrollView contentContainerStyle={st.conteudo}>
+        <View style={st.cabecalho}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <MaterialIcons name="arrow-back" size={22} color="#334155" />
+          </TouchableOpacity>
+          <Text style={st.titulo}>Busca</Text>
+        </View>
+        <AvisoInline mensagem={erro} onFechar={() => setErro("")} />
+        <View style={st.campo}>
+          <MaterialIcons name="search" size={21} color="#64748B" />
+          <TextInput
+            value={texto}
+            onChangeText={setTexto}
+            placeholder="Buscar tarefas..."
+            style={{ flex: 1, outlineStyle: "none" }}
+            autoFocus={false}
+          />
+          {!!texto && (
+            <TouchableOpacity onPress={() => setTexto("")}>
+              <MaterialIcons name="close" size={19} color="#64748B" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, marginVertical: 16 }}
+        >
+          {["Todas", "Pendentes", "Concluídas", "Prioridade"].map((x) => (
+            <TouchableOpacity
+              key={x}
+              onPress={() => setFiltro(x)}
+              style={[st.filtro, filtro === x && st.filtroAtivo]}
+            >
+              <Text
+                style={{
+                  color: filtro === x ? "#1D4ED8" : "#64748B",
+                  fontSize: 12,
+                }}
+              >
+                {x}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <Text style={st.subtitulo}>
+          {resultados.length} tarefa(s) encontrada(s)
+        </Text>
+        {resultados.map((t) => (
+          <TouchableOpacity
+            key={String(t.id)}
+            style={st.card}
+            onPress={() =>
+              navigation.navigate("detalhesTarefaScreen", { tarefaId: t.id })
+            }
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={st.nome}>{t.titulo}</Text>
+              <Text style={st.descricao} numberOfLines={1}>
+                {t.projeto} · {t.status}
+              </Text>
+            </View>
+            <Text
+              style={{
+                color: t.prioridade === "Alta" ? "#DC2626" : "#D97706",
+                fontSize: 12,
+              }}
+            >
+              {t.prioridade}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        {resultados.length === 0 && (
+          <Text style={st.vazio}>Nenhuma tarefa encontrada.</Text>
+        )}
+      </ScrollView>
+      <BottomTab activeRoute="buscaScreen" />
+    </View>
+  );
 }
-const st=StyleSheet.create({base:{flex:1,backgroundColor:"#F8FAFC"},conteudo:{paddingHorizontal:20,paddingTop:54,paddingBottom:110},cabecalho:{flexDirection:"row",alignItems:"center",gap:14,marginBottom:20},titulo:{fontSize:20,fontWeight:"700",color:"#0F172A"},campo:{flexDirection:"row",alignItems:"center",gap:9,borderWidth:1,borderColor:"#93C5FD",backgroundColor:"#FFF",borderRadius:12,paddingHorizontal:12,height:48},filtro:{borderWidth:1,borderColor:"#E2E8F0",borderRadius:16,paddingHorizontal:12,paddingVertical:8,backgroundColor:"#FFF"},filtroAtivo:{backgroundColor:"#EFF6FF",borderColor:"#93C5FD"},subtitulo:{color:"#64748B",fontSize:12,marginBottom:14},card:{backgroundColor:"#FFF",borderRadius:12,padding:15,marginBottom:10,flexDirection:"row",alignItems:"center",borderWidth:1,borderColor:"#E2E8F0"},nome:{fontWeight:"700",fontSize:14,color:"#0F172A"},descricao:{fontSize:12,color:"#64748B",marginTop:5},vazio:{textAlign:"center",marginTop:30,color:"#64748B"}});
+const st = StyleSheet.create({
+  base: { flex: 1, backgroundColor: "#F8FAFC" },
+  conteudo: { paddingHorizontal: 20, paddingTop: 54, paddingBottom: 110 },
+  cabecalho: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 20,
+  },
+  titulo: { fontSize: 20, fontWeight: "700", color: "#0F172A" },
+  campo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    borderWidth: 1,
+    borderColor: "#93C5FD",
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  filtro: {
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#FFF",
+  },
+  filtroAtivo: { backgroundColor: "#EFF6FF", borderColor: "#93C5FD" },
+  subtitulo: { color: "#64748B", fontSize: 12, marginBottom: 14 },
+  card: {
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  nome: { fontWeight: "700", fontSize: 14, color: "#0F172A" },
+  descricao: { fontSize: 12, color: "#64748B", marginTop: 5 },
+  vazio: { textAlign: "center", marginTop: 30, color: "#64748B" },
+});

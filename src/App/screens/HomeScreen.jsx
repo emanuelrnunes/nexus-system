@@ -1,4 +1,11 @@
-import { StyleSheet, Text, TextInput, View, ScrollView, TouchableOpacity, Platform } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import { useState, useCallback } from "react";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { listarTarefas } from "../services/taskService";
@@ -8,6 +15,7 @@ import ProjectCard from "../components/ProjectCard";
 import ButtonIcon from "../components/ButtonIcon";
 import BottomTab from "../components/BottomTab";
 import StatsCard from "../components/StatsCard";
+import AvisoInline from "../components/AvisoInline";
 import { MaterialIcons } from "@expo/vector-icons";
 
 /**
@@ -15,30 +23,48 @@ import { MaterialIcons } from "@expo/vector-icons";
  * Exibe saudação, busca e lista de projetos.
  */
 
-
 export default function HomeScreen() {
   const navigation = useNavigation();
   const [tarefas, setTarefas] = useState([]);
   const [projetos, setProjetos] = useState([]);
   const [nomeUsuario, setNomeUsuario] = useState("Usuário");
   const [busca, setBusca] = useState("");
-  useFocusEffect(useCallback(() => {
-    let ativo = true;
-    (async () => {
-      try {
-        const [lista, projetosSalvos, perfil] = await Promise.all([listarTarefas(), listarProjetos(), obterPerfil()]);
-        if (ativo) {
-          setTarefas(lista);
-          setProjetos(projetosSalvos);
-          setNomeUsuario((perfil.nome || "Usuário").trim().split(/\s+/)[0]);
+  const [erro, setErro] = useState("");
+  useFocusEffect(
+    useCallback(() => {
+      let ativo = true;
+      (async () => {
+        try {
+          const [lista, projetosSalvos, perfil] = await Promise.all([
+            listarTarefas(),
+            listarProjetos(),
+            obterPerfil(),
+          ]);
+          if (ativo) {
+            setTarefas(lista);
+            setProjetos(projetosSalvos);
+            setNomeUsuario((perfil.nome || "Usuário").trim().split(/\s+/)[0]);
+            setErro("");
+          }
+        } catch (e) {
+          if (ativo) setErro(e.message);
         }
-      } catch (erro) { console.error("Erro ao carregar resumo:", erro); if (ativo) setTarefas([]); }
-    })();
-    return () => { ativo = false; };
-  }, []));
+      })();
+      return () => {
+        ativo = false;
+      };
+    }, []),
+  );
+  const projetosFiltrados = projetos.filter((p) =>
+    p.title.toLowerCase().includes(busca.toLowerCase()),
+  );
   return (
     <View style={styles.wrapper}>
-      <ScrollView style={styles.container} contentContainerStyle={{paddingBottom:130}} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 130 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.logo}>NEXUS SYSTEM</Text>
           <MaterialIcons name="notifications-none" size={24} color="#111827" />
@@ -46,9 +72,23 @@ export default function HomeScreen() {
 
         <Text style={styles.greeting}>Olá, {nomeUsuario} 👋</Text>
 
+        <AvisoInline mensagem={erro} onFechar={() => setErro("")} />
+
         <Text style={styles.sectionTitle}>Seus projetos</Text>
 
-        <TouchableOpacity onPress={() => navigation.navigate("buscaScreen")} style={{alignSelf:"flex-end",marginTop:12,flexDirection:"row",alignItems:"center",gap:5}}><MaterialIcons name="search" size={18} color="#2563EB"/><Text style={{color:"#2563EB"}}>Buscar tarefas</Text></TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("buscaScreen")}
+          style={{
+            alignSelf: "flex-end",
+            marginTop: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+          }}
+        >
+          <MaterialIcons name="search" size={18} color="#2563EB" />
+          <Text style={{ color: "#2563EB" }}>Buscar tarefas</Text>
+        </TouchableOpacity>
 
         <TextInput
           placeholder="Buscar projetos..."
@@ -62,23 +102,56 @@ export default function HomeScreen() {
 
           <StatsCard value={tarefas.length} label="Tarefas" color="#A855F7" />
 
-          <StatsCard value={tarefas.filter(t => t.status === "Concluída").length} label="Concluídas" color="#22C55E" />
+          <StatsCard
+            value={tarefas.filter((t) => t.status === "Concluída").length}
+            label="Concluídas"
+            color="#22C55E"
+          />
         </View>
 
-        {projetos.filter(p => p.title.toLowerCase().includes(busca.toLowerCase())).length === 0 &&
-          <Text style={{color:"#64748B",textAlign:"center",marginTop:25}}>Nenhum projeto encontrado.</Text>}
-        {projetos.filter(p => p.title.toLowerCase().includes(busca.toLowerCase())).map(p => {
-          const doProjeto = tarefas.filter(t => t.projeto === p.title);
-          const concluidas = doProjeto.filter(t => t.status === "Concluída").length;
-          const progresso = doProjeto.length ? Math.round(100 * concluidas / doProjeto.length) : 0;
+        {projetosFiltrados.length === 0 && (
+          <Text
+            style={{ color: "#64748B", textAlign: "center", marginTop: 25 }}
+          >
+            Nenhum projeto encontrado.
+          </Text>
+        )}
+        {projetosFiltrados.map((p) => {
+          const doProjeto = tarefas.filter((t) => t.projetoId === p.id);
+          const concluidas = doProjeto.filter(
+            (t) => t.status === "Concluída",
+          ).length;
+          const progresso = doProjeto.length
+            ? Math.round((100 * concluidas) / doProjeto.length)
+            : 0;
           return (
             <View key={p.id} style={styles.projetoLinha}>
-              <TouchableOpacity style={{flex:1}} activeOpacity={0.8}
-                onPress={() => navigation.navigate("taskScreen", {projeto:p.title, status:"A Fazer"})}>
-                <ProjectCard title={p.title} tasks={doProjeto.length} progress={progresso} color={p.color} />
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                activeOpacity={0.8}
+                onPress={() =>
+                  navigation.navigate("taskScreen", {
+                    projeto: p.title,
+                    status: "A Fazer",
+                  })
+                }
+              >
+                <ProjectCard
+                  title={p.title}
+                  tasks={doProjeto.length}
+                  progress={progresso}
+                  color={p.color}
+                />
               </TouchableOpacity>
-              <TouchableOpacity accessibilityLabel={`Editar projeto ${p.title}`} style={styles.editarProjeto}
-                onPress={() => navigation.navigate("editarProjetoScreen", {projetoId:p.id})}>
+              <TouchableOpacity
+                accessibilityLabel={`Editar projeto ${p.title}`}
+                style={styles.editarProjeto}
+                onPress={() =>
+                  navigation.navigate("editarProjetoScreen", {
+                    projetoId: p.id,
+                  })
+                }
+              >
                 <MaterialIcons name="edit" size={21} color="#2563EB" />
               </TouchableOpacity>
             </View>
@@ -86,7 +159,10 @@ export default function HomeScreen() {
         })}
       </ScrollView>
 
-      <ButtonIcon icon="add" onPress={() => navigation.navigate("adicionarProjectScreen")} />
+      <ButtonIcon
+        icon="add"
+        onPress={() => navigation.navigate("adicionarProjectScreen")}
+      />
 
       <BottomTab />
     </View>
@@ -95,8 +171,16 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1 },
-  projetoLinha: {flexDirection:"row",alignItems:"center",gap:8},
-  editarProjeto: {width:44,height:46,backgroundColor:"#EFF6FF",borderRadius:12,alignItems:"center",justifyContent:"center",marginTop:15},
+  projetoLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
+  editarProjeto: {
+    width: 44,
+    height: 46,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 15,
+  },
 
   container: {
     flex: 1,

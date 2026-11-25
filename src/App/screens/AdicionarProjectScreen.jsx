@@ -27,10 +27,12 @@ export default function AdicionarProjectScreen({ navigation }) {
     setSalvando(true);
     try {
       await criarProjeto({ nome, descricao, cor: corSelecionada });
-      navigation.navigate("homeScreen");
+      navigation.popTo("homeScreen");
     } catch (erro) {
       setMensagemAviso(erro.message || "Não foi possível criar o projeto.");
-    } finally { setSalvando(false); }
+    } finally {
+      setSalvando(false);
+    }
   };
   return (
     <ScrollView
@@ -38,12 +40,20 @@ export default function AdicionarProjectScreen({ navigation }) {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <AvisoInline mensagem={mensagemAviso} onFechar={() => setMensagemAviso("")} />
-      <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingVertical: 10 }}>
-          <Text style={{ color: "#2563EB", fontWeight: "700" }}>‹ Voltar</Text>
-        </TouchableOpacity>
-        <Text style={{ fontSize: 22, fontWeight: "700", color: "#0F172A" }}>Novo projeto</Text>
-        <View style={styles.form}>
+      <AvisoInline
+        mensagem={mensagemAviso}
+        onFechar={() => setMensagemAviso("")}
+      />
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={{ paddingVertical: 10 }}
+      >
+        <Text style={{ color: "#2563EB", fontWeight: "700" }}>‹ Voltar</Text>
+      </TouchableOpacity>
+      <Text style={{ fontSize: 22, fontWeight: "700", color: "#0F172A" }}>
+        Novo projeto
+      </Text>
+      <View style={styles.form}>
         <Text style={styles.label}>Nome do Projeto</Text>
 
         <TextInput
@@ -71,8 +81,15 @@ export default function AdicionarProjectScreen({ navigation }) {
         setCorSelecionada={setCorSelecionada}
       />
 
-      <TouchableOpacity style={styles.btnPrimario} activeOpacity={0.85} onPress={salvar} disabled={salvando}>
-        <Text style={styles.btnPrimarioText}>{salvando ? "Salvando..." : "Criar Projeto"}</Text>
+      <TouchableOpacity
+        style={styles.btnPrimario}
+        activeOpacity={0.85}
+        onPress={salvar}
+        disabled={salvando}
+      >
+        <Text style={styles.btnPrimarioText}>
+          {salvando ? "Salvando..." : "Criar Projeto"}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );

@@ -1,5 +1,4 @@
-
-import { atualizarPerfil } from "../services/profileService";
+import { cadastrar as cadastrarUsuario } from "../services/authService";
 import { useState } from "react";
 import AvisoInline from "../components/AvisoInline";
 import {
@@ -13,26 +12,37 @@ import {
 } from "react-native";
 
 export default function CadastrarScreen({ navigation }) {
-  const [nome,setNome] = useState("");
-  const [email,setEmail] = useState("");
-  const [senha,setSenha] = useState("");
-  const [confirmacao,setConfirmacao] = useState("");
-  const [salvando,setSalvando] = useState(false);
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmacao, setConfirmacao] = useState("");
+  const [salvando, setSalvando] = useState(false);
   const [mensagemAviso, setMensagemAviso] = useState("");
   const avisar = (mensagem) => setMensagemAviso(mensagem);
   const cadastrar = async () => {
-    if (!nome.trim() || nome.trim().length < 3) return avisar("Informe seu nome completo.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return avisar("Informe um e-mail válido.");
-    if (senha.length < 6) return avisar("A senha deve ter pelo menos 6 caracteres.");
+    if (!nome.trim() || nome.trim().length < 3)
+      return avisar("Informe seu nome completo.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      return avisar("Informe um e-mail válido.");
+    if (senha.length < 6)
+      return avisar("A senha deve ter pelo menos 6 caracteres.");
     if (senha !== confirmacao) return avisar("As senhas não coincidem.");
     if (salvando) return;
     setSalvando(true);
     try {
-      await atualizarPerfil({nome:nome.trim(),email:email.trim().toLowerCase()});
-      // Nunca persistir senhas sem um backend seguro.
-      navigation.navigate("loginScreen", { avisoInicial: "Cadastro salvo apenas para demonstração. A criação de conta real depende do backend." });
-    } catch(e) { avisar("Não foi possível salvar o perfil."); }
-    finally {setSalvando(false);}
+      await cadastrarUsuario({
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        senha,
+      });
+      navigation.popTo("loginScreen", {
+        avisoInicial: "Conta criada com sucesso! Faça login para continuar.",
+      });
+    } catch (e) {
+      avisar(e.message);
+    } finally {
+      setSalvando(false);
+    }
   };
   return (
     <ScrollView
@@ -53,7 +63,10 @@ export default function CadastrarScreen({ navigation }) {
         <Text style={styles.titulo}>Criar Conta</Text>
       </View>
 
-      <AvisoInline mensagem={mensagemAviso} onFechar={() => setMensagemAviso("")} />
+      <AvisoInline
+        mensagem={mensagemAviso}
+        onFechar={() => setMensagemAviso("")}
+      />
 
       {/* Campos */}
       <View style={styles.form}>
@@ -61,7 +74,8 @@ export default function CadastrarScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Digite seu nome completo"
-          value={nome} onChangeText={setNome}
+          value={nome}
+          onChangeText={setNome}
           placeholderTextColor="#64748B"
         />
 
@@ -69,7 +83,8 @@ export default function CadastrarScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="voce@exemplo.com"
-          value={email} onChangeText={setEmail}
+          value={email}
+          onChangeText={setEmail}
           placeholderTextColor="#64748B"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -79,7 +94,8 @@ export default function CadastrarScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="••••••••"
-          value={senha} onChangeText={setSenha}
+          value={senha}
+          onChangeText={setSenha}
           placeholderTextColor="#64748B"
           secureTextEntry
         />
@@ -88,21 +104,27 @@ export default function CadastrarScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="••••••••"
-          value={confirmacao} onChangeText={setConfirmacao}
+          value={confirmacao}
+          onChangeText={setConfirmacao}
           placeholderTextColor="#64748B"
           secureTextEntry
         />
       </View>
 
       {/* Botão Cadastrar */}
-      <TouchableOpacity style={styles.btnPrimario} activeOpacity={0.85} onPress={cadastrar} disabled={salvando}>
+      <TouchableOpacity
+        style={styles.btnPrimario}
+        activeOpacity={0.85}
+        onPress={cadastrar}
+        disabled={salvando}
+      >
         <Text style={styles.btnPrimarioText}>Cadastrar</Text>
       </TouchableOpacity>
 
       {/* Criar conta */}
       <View style={styles.cadastroRow}>
         <Text style={styles.cadastroTexto}>Já tem uma conta? </Text>
-        <Pressable onPress={() => navigation.navigate("loginScreen")}>
+        <Pressable onPress={() => navigation.popTo("loginScreen")}>
           <Text style={styles.cadastroLink}>Entrar</Text>
         </Pressable>
       </View>

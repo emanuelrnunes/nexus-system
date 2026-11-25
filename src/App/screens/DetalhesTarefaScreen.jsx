@@ -15,7 +15,10 @@ import {
 } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import AvisoInline from "../components/AvisoInline";
-import { obterTarefa, excluirTarefa as removerTarefa } from "../services/taskService";
+import {
+  obterTarefa,
+  excluirTarefa as removerTarefa,
+} from "../services/taskService";
 
 // =====================================================
 // TELA: DETALHES DA TAREFA
@@ -31,6 +34,7 @@ export default function DetalhesTarefaScreen() {
   const [tarefa, setTarefa] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [mensagemAviso, setMensagemAviso] = useState("");
+  const [erroCarregar, setErroCarregar] = useState("");
   const [confirmacaoAberta, setConfirmacaoAberta] = useState(false);
 
   // =====================================================
@@ -42,8 +46,9 @@ export default function DetalhesTarefaScreen() {
 
     try {
       setTarefa(await obterTarefa(tarefaId));
+      setErroCarregar("");
     } catch (erro) {
-      console.error("Erro ao carregar tarefa:", erro);
+      setErroCarregar(erro.message);
       setTarefa(null);
     } finally {
       setCarregando(false);
@@ -88,9 +93,7 @@ export default function DetalhesTarefaScreen() {
       await removerTarefa(tarefa.id);
       navigation.goBack();
     } catch (erro) {
-      console.error("Erro ao excluir tarefa:", erro);
-
-      setMensagemAviso("Não foi possível excluir a tarefa.");
+      setMensagemAviso(erro.message || "Não foi possível excluir a tarefa.");
     }
   };
 
@@ -110,27 +113,6 @@ export default function DetalhesTarefaScreen() {
   };
 
   // =====================================================
-  // COMPONENTE: LINHA DE INFORMAÇÃO
-  // =====================================================
-
-  const LinhaInformacao = ({ titulo, valor, cor, fundo }) => (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{titulo}</Text>
-
-      <View
-        style={[
-          styles.valueContainer,
-          fundo ? { backgroundColor: fundo } : null,
-        ]}
-      >
-        <Text style={[styles.infoValue, cor ? { color: cor } : null]}>
-          {valor}
-        </Text>
-      </View>
-    </View>
-  );
-
-  // =====================================================
   // ESTADOS DE CARREGAMENTO
   // =====================================================
 
@@ -147,7 +129,9 @@ export default function DetalhesTarefaScreen() {
       <View style={styles.center}>
         <MaterialIcons name="error-outline" size={42} color="#94A3B8" />
 
-        <Text style={styles.emptyText}>Tarefa não encontrada.</Text>
+        <Text style={styles.emptyText}>
+          {erroCarregar || "Tarefa não encontrada."}
+        </Text>
 
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backLink}>Voltar ao Kanban</Text>
@@ -210,7 +194,10 @@ export default function DetalhesTarefaScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <AvisoInline mensagem={mensagemAviso} onFechar={() => setMensagemAviso("")} />
+        <AvisoInline
+          mensagem={mensagemAviso}
+          onFechar={() => setMensagemAviso("")}
+        />
         {/* TÍTULO DA TAREFA */}
         <Text style={styles.taskTitle}>{tarefa.titulo}</Text>
 
@@ -262,16 +249,64 @@ export default function DetalhesTarefaScreen() {
           <Text style={styles.editButtonText}>Editar Tarefa</Text>
         </TouchableOpacity>
       </ScrollView>
-      <Modal visible={confirmacaoAberta} transparent animationType="fade" onRequestClose={() => setConfirmacaoAberta(false)}>
-        <View style={styles.modalOverlay}><View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Excluir tarefa?</Text>
-          <Text style={styles.modalText}>Deseja realmente excluir esta tarefa? Esta ação não pode ser desfeita.</Text>
-          <View style={styles.modalActions}>
-            <TouchableOpacity onPress={() => setConfirmacaoAberta(false)} style={styles.modalCancel}><Text>Cancelar</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => { setConfirmacaoAberta(false); excluirTarefa(); }} style={styles.modalDelete}><Text style={{color:"#FFF",fontWeight:"700"}}>Excluir</Text></TouchableOpacity>
+      <Modal
+        visible={confirmacaoAberta}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmacaoAberta(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Excluir tarefa?</Text>
+            <Text style={styles.modalText}>
+              Deseja realmente excluir esta tarefa? Esta ação não pode ser
+              desfeita.
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={() => setConfirmacaoAberta(false)}
+                style={styles.modalCancel}
+              >
+                <Text>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setConfirmacaoAberta(false);
+                  excluirTarefa();
+                }}
+                style={styles.modalDelete}
+              >
+                <Text style={{ color: "#FFF", fontWeight: "700" }}>
+                  Excluir
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View></View>
+        </View>
       </Modal>
+    </View>
+  );
+}
+
+// =====================================================
+// COMPONENTE: LINHA DE INFORMAÇÃO
+// =====================================================
+
+function LinhaInformacao({ titulo, valor, cor, fundo }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{titulo}</Text>
+
+      <View
+        style={[
+          styles.valueContainer,
+          fundo ? { backgroundColor: fundo } : null,
+        ]}
+      >
+        <Text style={[styles.infoValue, cor ? { color: cor } : null]}>
+          {valor}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -421,10 +456,32 @@ const styles = StyleSheet.create({
   },
 
   backLink: { color: "#2563EB", fontWeight: "700" },
-  modalOverlay:{flex:1,backgroundColor:"rgba(15,23,42,0.5)",justifyContent:"center",padding:24},
-  modalCard:{backgroundColor:"#FFF",borderRadius:16,padding:20},
-  modalTitle:{fontSize:17,fontWeight:"700",color:"#0F172A",marginBottom:8},
-  modalText:{fontSize:13,color:"#475569",lineHeight:20},
-  modalActions:{flexDirection:"row",justifyContent:"flex-end",alignItems:"center",gap:10,marginTop:20},
-  modalCancel:{padding:12},modalDelete:{backgroundColor:"#DC2626",paddingHorizontal:18,paddingVertical:12,borderRadius:9},
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.5)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalCard: { backgroundColor: "#FFF", borderRadius: 16, padding: 20 },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 8,
+  },
+  modalText: { fontSize: 13, color: "#475569", lineHeight: 20 },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 20,
+  },
+  modalCancel: { padding: 12 },
+  modalDelete: {
+    backgroundColor: "#DC2626",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 9,
+  },
 });

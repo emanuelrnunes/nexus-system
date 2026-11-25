@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import AvisoInline from "../components/AvisoInline";
+import { entrar } from "../services/authService";
 import {
   View,
   Text,
@@ -15,6 +16,7 @@ export default function LoginScreen({ navigation, route }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mensagemAviso, setMensagemAviso] = useState("");
+  const [entrando, setEntrando] = useState(false);
   const aviso = (texto) => setMensagemAviso(texto);
   useEffect(() => {
     if (route.params?.avisoInicial) setMensagemAviso(route.params.avisoInicial);
@@ -40,7 +42,10 @@ export default function LoginScreen({ navigation, route }) {
         <Text style={styles.subtitulo}>Entre na sua conta</Text>
       </View>
 
-      <AvisoInline mensagem={mensagemAviso} onFechar={() => setMensagemAviso("")} />
+      <AvisoInline
+        mensagem={mensagemAviso}
+        onFechar={() => setMensagemAviso("")}
+      />
 
       {/* Campos */}
       <View style={styles.form}>
@@ -65,22 +70,41 @@ export default function LoginScreen({ navigation, route }) {
           onChangeText={setSenha}
         />
 
-        <Pressable style={styles.esqueciRow} onPress={() => aviso("Recuperação de senha será disponibilizada com o backend.")}>
+        <Pressable
+          style={styles.esqueciRow}
+          onPress={() =>
+            aviso("Recuperação de senha ainda não está disponível.")
+          }
+        >
           <Text style={styles.esqueciText}>Esqueci minha senha</Text>
         </Pressable>
       </View>
 
       {/* Botão entrar */}
       <TouchableOpacity
-        onPress={() => {
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return aviso("Digite um e-mail válido.");
-          if (senha.length < 6) return aviso("A senha deve ter pelo menos 6 caracteres.");
-          navigation.reset({index:0,routes:[{name:"homeScreen"}]});
+        onPress={async () => {
+          if (entrando) return;
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+            return aviso("Digite um e-mail válido.");
+          if (senha.length < 6)
+            return aviso("A senha deve ter pelo menos 6 caracteres.");
+          setEntrando(true);
+          try {
+            await entrar(email.trim().toLowerCase(), senha);
+            navigation.reset({ index: 0, routes: [{ name: "homeScreen" }] });
+          } catch (erro) {
+            aviso(erro.message);
+          } finally {
+            setEntrando(false);
+          }
         }}
+        disabled={entrando}
         style={styles.btnPrimario}
         activeOpacity={0.85}
       >
-        <Text style={styles.btnPrimarioText}>Entrar</Text>
+        <Text style={styles.btnPrimarioText}>
+          {entrando ? "Entrando..." : "Entrar"}
+        </Text>
       </TouchableOpacity>
 
       {/* Criar conta */}
@@ -100,10 +124,18 @@ export default function LoginScreen({ navigation, route }) {
 
       {/* Botões sociais */}
       <View style={styles.sociaisRow}>
-        <TouchableOpacity style={styles.btnSocial} activeOpacity={0.8} onPress={() => aviso("Login social ainda não implementado.")}>
+        <TouchableOpacity
+          style={styles.btnSocial}
+          activeOpacity={0.8}
+          onPress={() => aviso("Login social ainda não implementado.")}
+        >
           <Text style={styles.btnSocialText}>Google</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.btnSocial} activeOpacity={0.8} onPress={() => aviso("Login social ainda não implementado.")}>
+        <TouchableOpacity
+          style={styles.btnSocial}
+          activeOpacity={0.8}
+          onPress={() => aviso("Login social ainda não implementado.")}
+        >
           <Text style={styles.btnSocialText}>Facebook</Text>
         </TouchableOpacity>
       </View>
